@@ -9,6 +9,10 @@
   "scripts": {
     "start": "riddance-watch"
   },
+  "dependencies": {
+    "@riddance/service": "0.1.0",
+    "@riddance/fetch": "0.1.0"
+  },
   "devDependencies": {
     "@riddance/env": "0.5.0"
   }
