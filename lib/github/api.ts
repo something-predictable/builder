@@ -1,3 +1,4 @@
+/* eslint-disable camelcase */
 import { fetchJson, thrownHasStatus } from '@riddance/fetch'
 import type { Environment } from '@riddance/service/context'
 
@@ -32,7 +33,6 @@ export async function createHook(env: Environment, repo: { hooks_url: string }, 
                 events: ['push'],
                 config: {
                     url,
-                    // eslint-disable-next-line camelcase
                     content_type: 'json',
                 },
             }),
@@ -56,6 +56,31 @@ async function getReposFrom(who: 'orgs' | 'users', env: Environment, pathname: s
         }
         throw e
     }
+}
+
+export async function startBuild(env: Environment, pathname: string, _revision: string) {
+    const [org, repo] = pathname.split('/')
+    await fetchJson<{ ssh_url: string; hooks_url: string; name: string }[]>(
+        `https://api.github.com/repos/${org}/github-builder-workflows/dispatches`,
+        {
+            method: 'POST',
+            headers: {
+                ...headers(env),
+                'content-type': 'application/json',
+            },
+            body: JSON.stringify({
+                event_type: 'build',
+                client_payload: {
+                    repo_url: `git@github.com:${org}/${repo}.git`,
+                    glue_repo_url: `git@github.com:${org}/glue.staging.json`,
+                    deploy_version: '0.0.1',
+                    environment: 'staging',
+                    region: 'eu-central-1',
+                },
+            }),
+        },
+        'Error starting recognition build.',
+    )
 }
 
 function headers(env: Environment) {
