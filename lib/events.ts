@@ -1,15 +1,19 @@
 import type { Environment } from '@riddance/service/context'
-import { notImplemented } from '@riddance/service/http'
+import { badRequest, notImplemented } from '@riddance/service/http'
 import * as github from './github/dispatch.js'
 
 export async function repoChanged(
     env: Environment,
     url: string,
-    _ref: string,
+    ref: string,
     _before: string,
     after: string,
 ) {
-    if (!(await github.processRevision(env, url, after))) {
+    const branch = ref.split('/').at(-1)
+    if (!branch || !ref.startsWith('refs/heads/')) {
+        throw badRequest('Strange reference')
+    }
+    if (!(await github.processRevision(env, url, branch, after))) {
         throw notImplemented()
     }
 }

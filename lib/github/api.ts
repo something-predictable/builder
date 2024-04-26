@@ -1,5 +1,5 @@
 /* eslint-disable camelcase */
-import { fetchJson, thrownHasStatus } from '@riddance/fetch'
+import { fetchJson, fetchOK, thrownHasStatus } from '@riddance/fetch'
 import type { Environment } from '@riddance/service/context'
 
 export async function getRepos(env: Environment, pathname: string) {
@@ -58,10 +58,16 @@ async function getReposFrom(who: 'orgs' | 'users', env: Environment, pathname: s
     }
 }
 
-export async function startBuild(env: Environment, pathname: string, _revision: string) {
+export async function startBuild(
+    env: Environment,
+    pathname: string,
+    branch: string,
+    _revision: string,
+) {
     const [org, repo] = pathname.split('/')
-    await fetchJson<{ ssh_url: string; hooks_url: string; name: string }[]>(
-        `https://api.github.com/repos/${org}/github-builder-workflows/dispatches`,
+    const environment = branch === 'live' ? 'production' : 'staging'
+    await fetchOK(
+        `https://api.github.com/repos/${env.GITHUB_HOME_ORG}/github-builder-workflows/dispatches`,
         {
             method: 'POST',
             headers: {
@@ -72,14 +78,17 @@ export async function startBuild(env: Environment, pathname: string, _revision: 
                 event_type: 'build',
                 client_payload: {
                     repo_url: `git@github.com:${org}/${repo}.git`,
-                    glue_repo_url: `git@github.com:${org}/glue.staging.json`,
-                    deploy_version: '0.0.1',
-                    environment: 'staging',
+                    glue_repo_url: `git@github.com:${env.GITHUB_HOME_ORG}/glue.git`,
+                    deploy_version: '0.0.2',
+                    environment,
                     region: 'eu-central-1',
+                    github: {
+                        environment: branch === 'live' ? 'Production' : 'Staging',
+                    },
                 },
             }),
         },
-        'Error starting recognition build.',
+        'Error starting build.',
     )
 }
 
